@@ -1,0 +1,30 @@
+{
+  "name": "jazz-mxml",
+  "version": "0.0.0",
+  "description": "coming soon...",
+  "main": "jazz-mxml.js",
+  "scripts": {
+    "test": "nyc mocha",
+    "lint": "eslint jazz-abc.js",
+    "coverage": "nyc report --reporter=lcov"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jazz-soft/jazz-mxml.git"
+  },
+  "author": "jazz-soft (https://jazz-soft.net/)",
+  "dependencies": {
+    "detailed-xml-validator": "^1.1.0",
+    "fast-xml-parser": "^4.5.0",
+    "jzz": "^1.8.6",
+    "jzz-midi-smf": "^1.9.5"
+  },
+  "devDependencies": {
+    "eslint": "^9.13.0",
+    "mocha": "^10.7.3",
+    "nyc": "^17.1.0"
+  },
+  "homepage": "https://github.com/jazz-soft/jazz-mxml#readme",
+  "bugs": "https://github.com/jazz-soft/jazz-mxml/issues",
+  "license": "MIT"
+}
