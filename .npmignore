@@ -1,6 +1,7 @@
 .*
 test*
 coverage
+specs
 eslint*
 *.url
 *.bat
