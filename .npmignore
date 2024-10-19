@@ -1,0 +1,7 @@
+.*
+test*
+coverage
+eslint*
+*.url
+*.bat
+!test
