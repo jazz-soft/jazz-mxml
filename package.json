@@ -5,7 +5,7 @@
   "main": "jazz-mxml.js",
   "scripts": {
     "test": "nyc mocha",
-    "lint": "eslint jazz-abc.js",
+    "lint": "eslint jazz-mxml.js",
     "coverage": "nyc report --reporter=lcov"
   },
   "repository": {
