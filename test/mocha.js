@@ -33,3 +33,24 @@ describe('constructor', function() {
     assert.equal(X.isValid(), false);
   });
 });
+
+describe('utils', function() {
+  it('validate', function() {
+    var X = new MXML(partwise);
+    assert.equal(X.validate(), true);
+    assert.equal(MXML.validate('').err.code, 'InvalidXml');
+  });
+  it('format', function() {
+    var X = new MXML(partwise);
+    assert.equal(X.txt.length, 508);
+    assert.equal(X.format().length, 754);
+  });
+  it('part2time', function() {
+    var X = new MXML(partwise);
+    assert.equal(X.part2time(), undefined);
+  });
+  it('time2part', function() {
+    var X = new MXML(timewise);
+    assert.equal(X.time2part(), undefined);
+  });
+});
