@@ -3,7 +3,7 @@ const {XMLParser, XMLBuilder} = require('fast-xml-parser');
 
 var i;
 var body = [];
-body.push("const mxlm_xsd = '" + read_xml('musicxml.xsd') + "';");
+body.push("const mxml_xsd = '" + read_xml('musicxml.xsd') + "';");
 body.push("const p2t_xsl = '" + read_xml('parttime.xsl') + "';");
 body.push("const t2p_xsl = '" + read_xml('timepart.xsl') + "';");
 
