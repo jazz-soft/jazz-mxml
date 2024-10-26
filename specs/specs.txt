@@ -1,5 +1,6 @@
 <BODY>
 module.exports = {
+  mxml_xsd: mxml_xsd,
   p2t_xsl: p2t_xsl,
   t2p_xsl: t2p_xsl
 };
