@@ -26,14 +26,31 @@ if (typeof DOMParser != 'undefined') {
   const xml_serial = new XMLSerializer();
   const xsl_p2t = new XSLTProcessor();
   const xsl_t2p = new XSLTProcessor();
-  xsl_p2t.importStylesheet(parser.parseFromString(specs.p2t, "text/xml"));
-  xsl_t2p.importStylesheet(parser.parseFromString(specs.t2p, "text/xml"));
+  xsl_p2t.importStylesheet(dom_parser.parseFromString(specs.p2t_xsl, "text/xml"));
+  xsl_t2p.importStylesheet(dom_parser.parseFromString(specs.t2p_xsl, "text/xml"));
   MXML.prototype.part2time = function() {
     if (this.isPartwise()) return xml_serial.serializeToString(xsl_p2t.transformToDocument(dom_parser.parseFromString(this.getText(), "text/xml")));
   };
   MXML.prototype.time2part = function() {
     if (this.isTimewise()) return xml_serial.serializeToString(xsl_t2p.transformToDocument(dom_parser.parseFromString(this.getText(), "text/xml")));
   };
+}
+
+var tostring, inflate;
+if (typeof DecompressionStream != 'undefined') {
+  inflate = async function(b) {
+    const ds = new DecompressionStream('deflate-raw');
+    const writer = ds.writable.getWriter();
+    writer.write(b);
+    writer.close();
+    return await new Response(ds.readable).arrayBuffer();
+  };
+  tostring = function(x) { return new TextDecoder().decode(x); };
+}
+else {
+  const zlib = require('zlib');
+  inflate = function(b) { return zlib.inflateRawSync(b); };
+  tostring = function(x) { return String(x); };
 }
 
 function n2(b, n) { return b[n] + b[n + 1] * 0x100; }
@@ -53,7 +70,7 @@ MXML.zipInfo = function(data) {
     return a;
   }
 }
-MXML.unzip = function(data) {
+MXML.unzip = async function(data) {
   const inf = zipInfo(data);
   if (!inf) return;
   var FF = inf.FF;
@@ -67,7 +84,7 @@ MXML.unzip = function(data) {
   }
   for (k of FFF) {
     if (k == meta_inf) continue;
-    s = decompress(data, FF[k]);
+    s = await decompress(data, FF[k]);
     if (!s) continue;
     s = String(s);
     if (!s0) s0 = s;
@@ -97,7 +114,7 @@ function zipInfo(data) {
     fnlen = n2(data, n + 28);
     exlen = n2(data, n + 30);
     cmlen = n2(data, n + 32);
-    fname = String(data.subarray(n + 46, n + 46 + fnlen));
+    fname = tostring(data.subarray(n + 46, n + 46 + fnlen));
     m = n4(data, n + 42);
     if (n4(data, m) != 0x4034b50) {
       console.log('bad zip file');
@@ -109,15 +126,14 @@ function zipInfo(data) {
   }
   if (FFF.length) return { FFF: FFF, FF: FF };
 }
-function decompress(data, x) {
+async function decompress(data, x) {
   var b = data.subarray(x.off, x.off + x.len);
   if (x.comp == 0) {
-    return String(b);
+    return tostring(b);
   }
   else if (x.comp == 8) {
-    var zlib = require('zlib');
     try {
-      return String(zlib.inflateRawSync(b));
+      return tostring(await inflate(b));
     }
     catch (e) {
       console.log('decompress:', e.message);
@@ -136,7 +152,7 @@ function parse(xml) {
 }
 function traverse(x, f) {
   if (Array.isArray(x)) for (var y of x) traverse(y, f);
-  if (typeof x != 'object') return; 
+  if (typeof x != 'object') return;
   f(x);
   for (var k of Object.keys(x)) traverse(x[k], f);
 }
