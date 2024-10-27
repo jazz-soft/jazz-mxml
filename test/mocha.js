@@ -1,4 +1,5 @@
-﻿const assert = require('assert');
+﻿const fs = require('fs');
+const assert = require('assert');
 const MXML = require('..');
 const specs = require('../specs.js');
 
@@ -11,6 +12,8 @@ describe('constructor', function() {
     assert.equal(X.isValid(), false);
     assert.equal(X.isPartwise(), false);
     assert.equal(X.isTimewise(), false);
+    assert.equal(X.isOpus(), false);
+    assert.equal(X.isMei(), false);
   });
   it('garbage', function() {
     var X = new MXML('garbage');
@@ -31,6 +34,36 @@ describe('constructor', function() {
   it('other xml', function() {
     var X = new MXML(specs.p2t_xsl);
     assert.equal(X.isValid(), false);
+  });
+});
+
+describe('files', function() {
+  it('xml-partwise', function() {
+    var data = fs.readFileSync(__dirname + '/data/1.xml', 'utf8');
+    var X = new MXML(data);
+    assert.equal(X.isValid(), true);
+    assert.equal(X.isPartwise(), true);
+    assert.equal(X.isTimewise(), false);
+    assert.equal(X.isOpus(), false);
+    assert.equal(X.isMei(), false);
+  });
+  it('xml-opus', function() {
+    var data = fs.readFileSync(__dirname + '/data/opus.xml', 'utf8');
+    var X = new MXML(data);
+    assert.equal(X.isValid(), true);
+    assert.equal(X.isPartwise(), false);
+    assert.equal(X.isTimewise(), false);
+    assert.equal(X.isOpus(), true);
+    assert.equal(X.isMei(), false);
+  });
+  it('mei', function() {
+    var data = fs.readFileSync(__dirname + '/data/1.mei', 'utf8');
+    var X = new MXML(data);
+    assert.equal(X.isValid(), true);
+    assert.equal(X.isPartwise(), false);
+    assert.equal(X.isTimewise(), false);
+    assert.equal(X.isOpus(), false);
+    assert.equal(X.isMei(), true);
   });
 });
 

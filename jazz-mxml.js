@@ -7,7 +7,7 @@ const builder = new FXP.XMLBuilder({ ignoreAttributes: false, format: true });
 function MXML(s) {
   if (!s || FXP.XMLValidator.validate(s) !== true) return;
   var xml = parser.parse(s);
-  if (!xml['score-partwise'] && !xml['score-timewise']) return;
+  if (!xml['score-partwise'] && !xml['score-timewise'] && !xml['opus'] && !xml['mei']) return;
   this.txt = s;
   this.xml = parser.parse(s);
 }
@@ -15,6 +15,7 @@ MXML.prototype.isValid = function() { return !!this.xml; };
 MXML.prototype.isPartwise = function() { return this.isValid() && !!this.xml['score-partwise']; };
 MXML.prototype.isTimewise = function() { return this.isValid() && !!this.xml['score-timewise']; };
 MXML.prototype.isOpus = function() { return this.isValid() && !!this.xml['opus']; };
+MXML.prototype.isMei = function() { return this.isValid() && !!this.xml['mei']; };
 MXML.prototype.part2time = function() {};
 MXML.prototype.time2part = MXML.prototype.part2time;
 MXML.prototype.format = function () { return builder.build(this.xml); };
