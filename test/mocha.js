@@ -65,6 +65,11 @@ describe('files', function() {
     assert.equal(X.isOpus(), false);
     assert.equal(X.isMei(), true);
   });
+  it('mxl', async function() {
+    var data = fs.readFileSync(__dirname + '/data/1.mxl');
+    var X = new MXML(await MXML.unzip(data));
+    assert.equal(X.isValid(), true);
+  });
 });
 
 describe('utils', function() {

@@ -109,7 +109,7 @@ function zipInfo(data) {
   n = n4(data, n + 16);
   for (i = 0; i < nrec; i++) {
     if (n4(data, n) != 0x2014b50) {
-      console.log('bad zip file');
+      console.warn('bad zip file');
       return;
     }
     fnlen = n2(data, n + 28);
@@ -118,7 +118,7 @@ function zipInfo(data) {
     fname = tostring(data.subarray(n + 46, n + 46 + fnlen));
     m = n4(data, n + 42);
     if (n4(data, m) != 0x4034b50) {
-      console.log('bad zip file');
+      console.warn('bad zip file');
       return;
     }
     FFF.push(fname);
@@ -128,6 +128,7 @@ function zipInfo(data) {
   if (FFF.length) return { FFF: FFF, FF: FF };
 }
 async function decompress(data, x) {
+  if (!x.len) return;
   var b = data.subarray(x.off, x.off + x.len);
   if (x.comp == 0) {
     return tostring(b);
@@ -137,12 +138,12 @@ async function decompress(data, x) {
       return tostring(await inflate(b));
     }
     catch (e) {
-      console.log('decompress:', e.message);
+      console.warn('decompress:', e.message);
       return;
     }
   }
   else {
-    console.log('compression method not supported:', x.comp);
+    console.warn('compression method not supported:', x.comp);
   }
 }
 function parse(xml) {
