@@ -70,6 +70,11 @@ describe('files', function() {
     var X = new MXML(await MXML.unzip(data));
     assert.equal(X.isValid(), true);
   });
+  it('zip', async function() {
+    var data = fs.readFileSync(__dirname + '/data/1.zip');
+    var X = new MXML(await MXML.unzip(data));
+    assert.equal(X.isValid(), true);
+  });
 });
 
 describe('utils', function() {
