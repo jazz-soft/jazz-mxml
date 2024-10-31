@@ -70,8 +70,13 @@ describe('files', function() {
     var X = new MXML(await MXML.unzip(data));
     assert.equal(X.isValid(), true);
   });
-  it('zip', async function() {
+  it('zip 1', async function() {
     var data = fs.readFileSync(__dirname + '/data/1.zip');
+    var X = new MXML(await MXML.unzip(data));
+    assert.equal(X.isValid(), true);
+  });
+  it('zip 2', async function() {
+    var data = fs.readFileSync(__dirname + '/data/2.zip');
     var X = new MXML(await MXML.unzip(data));
     assert.equal(X.isValid(), true);
   });

@@ -126,8 +126,8 @@ function zipInfo(data) {
       off: m + 30 + n2(data, m + 26) + n2(data, m + 28),
       len: n4(data, n + 20), // n4(data, m + 18),
       size: n4(data, n + 24), // n4(data, m + 22),
-      date: dos2date(n4(data, m + 10)),
-      comp: n2(data, m + 8)
+      date: dos2date(n4(data, n + 12)), //dos2date(n4(data, m + 10)),
+      comp: n2(data, n + 10) // n2(data, m + 8)
     };
     n += 46 + fnlen + exlen + cmlen;
   }
