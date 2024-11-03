@@ -8,7 +8,7 @@ export default [
     },
     {
         languageOptions: {
-            ecmaVersion: 2015,
+            ecmaVersion: 8,
             globals: {
                 ...globals.node
             }

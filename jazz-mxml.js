@@ -37,25 +37,28 @@ if (typeof DOMParser != 'undefined') {
   };
 }
 
-var tostring, inflate;
-if (typeof DecompressionStream != 'undefined') {
-  inflate = async function(b) {
-    const ds = new DecompressionStream('deflate-raw');
-    const writer = ds.writable.getWriter();
-    writer.write(b);
-    writer.close();
-    return await new Response(ds.readable).arrayBuffer();
-  };
-  tostring = function(x) { return new TextDecoder().decode(x); };
+async function inflate(b) {
+  const ds = new DecompressionStream('deflate-raw');
+  const writer = ds.writable.getWriter();
+  writer.write(b);
+  writer.close();
+  return await new Response(ds.readable).arrayBuffer();
 }
-else {
-  const zlib = require('zlib');
-  inflate = function(b) { return zlib.inflateRawSync(b); };
-  tostring = function(x) { return String(x); };
-}
-
+async function deflate(b) {
+  const ds = new CompressionStream('deflate-raw');
+  const writer = ds.writable.getWriter();
+  writer.write(b);
+  writer.close();
+  return await new Response(ds.readable).arrayBuffer();
+};
+function tostring(x) { return new TextDecoder().decode(x); }
+function tobuffer(x) { return new TextEncoder().encode(x); }
 function n2(b, n) { return b[n] + b[n + 1] * 0x100; }
 function n4(b, n) { return b[n] + b[n + 1] * 0x100 + b[n + 2] * 0x10000 + b[n + 3] * 0x1000000; }
+function ww(b, n, x, w) { for (var i = 0; i < w; i++) { b[n + i] = x & 255; x >>= 8; } }
+function w2(b, n, x) { ww(b, n, x, 2); }
+function w4(b, n, x) { ww(b, n, x, 4); }
+function wb(b, n, x) { for (var i = 0; i < x.length; i++) b[n + i] = x[i]; }
 function dos2date(n) {
   return new Date((n >> 25) + 1980, ((n >> 21) & 15) - 1, (n >> 16) & 31, (n >> 11) & 31, (n >> 5) & 63, (n & 31) << 1);
 }
@@ -63,6 +66,7 @@ function date2dos(d) {
   return (d.getSeconds() >> 1) + (d.getMinutes() << 5) + (d.getHours() << 11) + (d.getDate() << 16) + ((d.getMonth() + 1) << 21) + ((d.getFullYear() - 1980) << 25);
 }
 const meta_inf = 'META-INF/container.xml';
+const meta_xml = '<?xml version="1.0" encoding="UTF-8"?><container><rootfiles><rootfile full-path="data.xml"></rootfile></rootfiles></container>';
 MXML.zipInfo = function(data) {
   const inf = zipInfo(data);
   if (inf) {
@@ -70,7 +74,7 @@ MXML.zipInfo = function(data) {
     for (var k of inf.FFF) a.push({ name: k, size: inf.FF[k].size, date: inf.FF[k].date });
     return a;
   }
-}
+};
 MXML.unzip = async function(data) {
   const inf = zipInfo(data);
   if (!inf) return;
@@ -96,6 +100,71 @@ MXML.unzip = async function(data) {
     if (x['opus'] && !s2) s2 = s;
   }
   return s2 || s1 || s0;
+}
+MXML.zip = async function(data, name) {
+  var x;
+  var date = date2dos(new Date());
+  var A = name ? [{ data: data, name: tobuffer(name) }] : [{ data: tobuffer(meta_xml), name: tobuffer(meta_inf) }, { data: data, name: tobuffer('data.xml') }];
+  var n = 0;
+  for (x of A) {
+    x.off = n;
+    x.crc = crc(x.data);
+    x.buff = await deflate(x.data);
+    if (x.buff.length < x.data.length) x.comp = 8;
+    else {
+      x.buff = x.data;
+      x.comp = 0;
+    }
+    n += 30 + x.name.length + x.buff.length;
+  }
+  var m = n;
+  for (x of A) n += 46 + x.name.length;
+  var B = new Uint8Array(n + 22);
+  n = 0;
+  for (x of A) {
+    w4(B, n, 0x04034b50);
+    w2(B, n + 4, 20);
+    w2(B, n + 6, 0);
+    w2(B, n + 8, x.comp);
+    w4(B, n + 10, date);
+    w4(B, n + 14, x.crc);
+    w4(B, n + 18, x.buff.length);
+    w4(B, n + 22, x.data.length);
+    w2(B, n + 26, x.name.length);
+    w2(B, n + 28, 0);
+    wb(B, n + 30, x.name);
+    wb(B, n + 30 + x.name.length, x.buff);
+    n += 30 + x.name.length + x.buff.length;
+  }
+  for (x of A) {
+    w4(B, n, 0x02014b50);
+    w2(B, n + 4, 20);
+    w2(B, n + 6, 20);
+    w2(B, n + 8, 0);
+    w2(B, n + 10, x.comp);
+    w4(B, n + 12, date);
+    w4(B, n + 16, x.crc);
+    w4(B, n + 20, x.buff.length);
+    w4(B, n + 24, x.data.length);
+    w2(B, n + 28, x.name.length);
+    w2(B, n + 30, 0);
+    w2(B, n + 32, 0);
+    w2(B, n + 34, 0);
+    w2(B, n + 36, 0);
+    w4(B, n + 38, 0);
+    w4(B, n + 42, x.off);
+    wb(B, n + 46, x.name);
+    n += 46 + x.name.length;
+  }
+  w4(B, n, 0x06054b50);
+  w2(B, n + 4, 0);
+  w2(B, n + 6, 0);
+  w2(B, n + 8, A.length);
+  w2(B, n + 10, A.length);
+  w4(B, n + 12, n - m);
+  w4(B, n + 16, m);
+  w2(B, n + 20, 0);
+  return B;
 }
 function zipInfo(data) {
   var i, m, n;

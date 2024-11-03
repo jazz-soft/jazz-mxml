@@ -80,6 +80,17 @@ describe('files', function() {
     var X = new MXML(await MXML.unzip(data));
     assert.equal(X.isValid(), true);
   });
+  it('xml -> mxl', async function() {
+    var X = MXML.zipInfo(await MXML.zip(partwise));
+    assert.equal(X.length, 2);
+    assert.equal(X[0].name, 'META-INF/container.xml');
+    assert.equal(X[1].name, 'data.xml');
+  });
+  it('xml -> zip', async function() {
+    var X = MXML.zipInfo(await MXML.zip('dummy', 'dummy.txt'));
+    assert.equal(X.length, 1);
+    assert.equal(X[0].name, 'dummy.txt');
+  });
 });
 
 describe('utils', function() {
