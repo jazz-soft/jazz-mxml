@@ -30,10 +30,10 @@ if (typeof DOMParser != 'undefined') {
   xsl_p2t.importStylesheet(dom_parser.parseFromString(specs.p2t_xsl, "text/xml"));
   xsl_t2p.importStylesheet(dom_parser.parseFromString(specs.t2p_xsl, "text/xml"));
   MXML.prototype.part2time = function() {
-    if (this.isPartwise()) return xml_serial.serializeToString(xsl_p2t.transformToDocument(dom_parser.parseFromString(this.getText(), "text/xml")));
+    if (this.isPartwise()) return xml_serial.serializeToString(xsl_p2t.transformToDocument(dom_parser.parseFromString(this.txt, "text/xml")));
   };
   MXML.prototype.time2part = function() {
-    if (this.isTimewise()) return xml_serial.serializeToString(xsl_t2p.transformToDocument(dom_parser.parseFromString(this.getText(), "text/xml")));
+    if (this.isTimewise()) return xml_serial.serializeToString(xsl_t2p.transformToDocument(dom_parser.parseFromString(this.txt, "text/xml")));
   };
 }
 
@@ -49,7 +49,7 @@ async function deflate(b) {
   const writer = ds.writable.getWriter();
   writer.write(b);
   writer.close();
-  return await new Response(ds.readable).arrayBuffer();
+  return await new Response(ds.readable);
 };
 function tostring(x) { return new TextDecoder().decode(x); }
 function tobuffer(x) { return new TextEncoder().encode(x); }
