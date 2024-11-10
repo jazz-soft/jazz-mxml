@@ -3,8 +3,8 @@ const assert = require('assert');
 const MXML = require('..');
 const specs = require('../specs.js');
 
-const partwise = '<?xml version="1.0" encoding="UTF-8" standalone="no"?><score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Music</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>1</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes><note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><type>whole</type></note></measure></part></score-partwise>';
-const timewise = '<?xml version="1.0" encoding="UTF-8" standalone="no"?><score-timewise version="4.0"><part-list><score-part id="P1"><part-name>Music</part-name></score-part></part-list><measure number="1"><part id="P1"><attributes><divisions>1</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes><note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><type>whole</type></note></part></measure></score-timewise>';
+const partwise = '<?xml version="1.0" encoding="UTF-8"?><score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Music</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>1</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes><note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><type>whole</type></note></measure></part></score-partwise>';
+const timewise = '<?xml version="1.0" encoding="UTF-8"?><score-timewise version="4.0"><part-list><score-part id="P1"><part-name>Music</part-name></score-part></part-list><measure number="1"><part id="P1"><attributes><divisions>1</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes><note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><type>whole</type></note></part></measure></score-timewise>';
 
 describe('constructor', function() {
   it('empty', function() {
@@ -101,8 +101,8 @@ describe('utils', function() {
   });
   it('format', function() {
     var X = new MXML(partwise);
-    assert.equal(X.txt.length, 508);
-    assert.equal(X.format().length, 754);
+    assert.equal(X.txt.length, 492);
+    assert.equal(X.format().length, 699);
   });
   it('part2time', function() {
     var X = new MXML(partwise);

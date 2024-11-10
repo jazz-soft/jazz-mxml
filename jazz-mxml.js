@@ -1,21 +1,21 @@
 const FXP = require('fast-xml-parser');
 const specs = require('./specs.js');
 
-const parser = new FXP.XMLParser({ ignoreAttributes: false });
-const builder = new FXP.XMLBuilder({ ignoreAttributes: false, format: true });
+const parser = new FXP.XMLParser({ ignoreAttributes: false, preserveOrder: true, ignorePiTags: true });
+const builder = new FXP.XMLBuilder({ ignoreAttributes: false, preserveOrder: true, format: true });
 
 function MXML(s) {
   if (!s || FXP.XMLValidator.validate(s) !== true) return;
   var xml = parser.parse(s);
-  if (!xml['score-partwise'] && !xml['score-timewise'] && !xml['opus'] && !xml['mei']) return;
+  if (xml.length != 1 || !xml[0]['score-partwise'] && !xml[0]['score-timewise'] && !xml[0]['opus'] && !xml[0]['mei']) return;
   this.txt = s;
-  this.xml = parser.parse(s);
+  this.xml = xml;
 }
 MXML.prototype.isValid = function() { return !!this.xml; };
-MXML.prototype.isPartwise = function() { return this.isValid() && !!this.xml['score-partwise']; };
-MXML.prototype.isTimewise = function() { return this.isValid() && !!this.xml['score-timewise']; };
-MXML.prototype.isOpus = function() { return this.isValid() && !!this.xml['opus']; };
-MXML.prototype.isMei = function() { return this.isValid() && !!this.xml['mei']; };
+MXML.prototype.isPartwise = function() { return this.isValid() && !!this.xml[0]['score-partwise']; };
+MXML.prototype.isTimewise = function() { return this.isValid() && !!this.xml[0]['score-timewise']; };
+MXML.prototype.isOpus = function() { return this.isValid() && !!this.xml[0]['opus']; };
+MXML.prototype.isMei = function() { return this.isValid() && !!this.xml[0]['mei']; };
 MXML.prototype.part2time = function() {};
 MXML.prototype.time2part = MXML.prototype.part2time;
 MXML.prototype.format = function () { return builder.build(this.xml); };
@@ -83,8 +83,8 @@ MXML.unzip = async function(data) {
   var a, k, s, s0, s1, s2, x;
   if (FF[meta_inf]) {
     a = [];
-    x = parse(decompress(data, FF[meta_inf]));
-    traverse(x, find('rootfile', function(x) { if (x['@_full-path']) a.push(x['@_full-path']); }));
+    x = parse(await decompress(data, FF[meta_inf]));
+    traverse(x, find('rootfile', function(x) { if (x[':@'] && x[':@']['@_full-path']) a.push(x[':@']['@_full-path']); }));
     if (a.length) FFF = a;
   }
   for (k of FFF) {
@@ -94,10 +94,10 @@ MXML.unzip = async function(data) {
     s = String(s);
     if (!s0) s0 = s;
     x = parse(s);
-    if (!x) continue;
+    if (!x || !x.length) continue;
     if (!s1) s1 = s;
-    if (x['score-partwise'] || x['score-timewise']) return s;
-    if (x['opus'] && !s2) s2 = s;
+    if (x[0]['score-partwise'] || x[0]['score-timewise']) return s;
+    if (x[0]['opus'] && !s2) s2 = s;
   }
   return s2 || s1 || s0;
 }
@@ -227,18 +227,14 @@ function parse(xml) {
   }
   catch (e) {/**/}
 }
+function find(n, f) { return function(x) { if (x[n]) f(x); }; }
 function traverse(x, f) {
   if (Array.isArray(x)) for (var y of x) traverse(y, f);
-  if (typeof x != 'object') return;
-  f(x);
-  for (var k of Object.keys(x)) traverse(x[k], f);
-}
-function find(n, f) {
-  return function(x) {
-    x = x[n];
-    if (Array.isArray(x)) for (var y of x) f(y);
-    else if (typeof x == 'object') f(x);
-  };
+  else {
+    if (typeof x != 'object') return;
+    f(x);
+    for (var k of Object.keys(x)) traverse(x[k], f);
+  }
 }
 var T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, Ta, Tb, Tc, Td, Te, Tf;
 (function() {

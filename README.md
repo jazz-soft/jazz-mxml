@@ -7,4 +7,4 @@
 
 coming soon...
 
-see: https://www.w3.org/2021/06/musicxml40
+see: https://w3c.github.io/musicxml
