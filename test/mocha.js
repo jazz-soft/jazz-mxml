@@ -106,10 +106,14 @@ describe('utils', function() {
   });
   it('part2time', function() {
     var X = new MXML(partwise);
-    assert.equal(X.part2time(), undefined);
+    assert.equal(X.isPartwise(), true);
+    X = new MXML(X.part2time());
+    assert.equal(X.isTimewise(), true);
   });
   it('time2part', function() {
     var X = new MXML(timewise);
-    assert.equal(X.time2part(), undefined);
+    assert.equal(X.isTimewise(), true);
+    X = new MXML(X.time2part());
+    assert.equal(X.isPartwise(), true);
   });
 });

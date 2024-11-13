@@ -1,6 +1,10 @@
 const FXP = require('fast-xml-parser');
 const specs = require('./specs.js');
 
+const XML_prolog = '<?xml version="1.0" encoding="UTF-8"?>';
+const XML_partwise = '<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">';
+const XML_timewise = '<!DOCTYPE score-timewise PUBLIC "-//Recordare//DTD MusicXML 4.0 Timewise//EN" "http://www.musicxml.org/dtds/timewise.dtd">';
+
 const parser = new FXP.XMLParser({ ignoreAttributes: false, preserveOrder: true, ignorePiTags: true });
 const builder = new FXP.XMLBuilder({ ignoreAttributes: false, preserveOrder: true, format: true });
 
@@ -16,26 +20,68 @@ MXML.prototype.isPartwise = function() { return this.isValid() && !!this.xml[0][
 MXML.prototype.isTimewise = function() { return this.isValid() && !!this.xml[0]['score-timewise']; };
 MXML.prototype.isOpus = function() { return this.isValid() && !!this.xml[0]['opus']; };
 MXML.prototype.isMei = function() { return this.isValid() && !!this.xml[0]['mei']; };
-MXML.prototype.part2time = function() {};
-MXML.prototype.time2part = MXML.prototype.part2time;
 MXML.prototype.format = function () { return builder.build(this.xml); };
 MXML.validate = function(s) { return FXP.XMLValidator.validate(s); };
 MXML.prototype.validate = function () { return MXML.validate(this.txt); };
-
-if (typeof DOMParser != 'undefined') {
-  const dom_parser = new DOMParser();
-  const xml_serial = new XMLSerializer();
-  const xsl_p2t = new XSLTProcessor();
-  const xsl_t2p = new XSLTProcessor();
-  xsl_p2t.importStylesheet(dom_parser.parseFromString(specs.p2t_xsl, "text/xml"));
-  xsl_t2p.importStylesheet(dom_parser.parseFromString(specs.t2p_xsl, "text/xml"));
-  MXML.prototype.part2time = function() {
-    if (this.isPartwise()) return xml_serial.serializeToString(xsl_p2t.transformToDocument(dom_parser.parseFromString(this.txt, "text/xml")));
-  };
-  MXML.prototype.time2part = function() {
-    if (this.isTimewise()) return xml_serial.serializeToString(xsl_t2p.transformToDocument(dom_parser.parseFromString(this.txt, "text/xml")));
-  };
+function for_tag(a, t, f) { for (var x of a) if (x[t]) f(x, x[t]); }
+function copy_mxl_headers(src, dst) {
+  function push(x) { dst.push(x); }
+  for (var tag of ['work', 'movement-number', 'movement-title', 'identification', 'defaults', 'credit', 'part-list']) for_tag(src, tag, push);
 }
+function copy_attributes(src, dst) { if (src[':@']) dst[':@'] = src[':@']; }
+function get_attribute(x, a) { if (x[':@']) return x[':@']['@_' + a]; }
+function set_attribute(x, a, v) { if (!x[':@']) x[':@'] = {}; x[':@']['@_' + a] = v; }
+function flip_measures(src, dst, tag1, id1, tag2, id2) {
+  var a1 = [], a2 = [];
+  var aa1 = {}, aa2 = {}, aaa = {};
+  var x, w, k, n;
+  for_tag(src, tag1, function(x) {
+    k = get_attribute(x, id1);
+    if (!aa1[k]) {
+      a1.push(k);
+      aa1[k] = x[':@'] || {};
+      aaa[k] = {};
+    }
+    for_tag(x[tag1], tag2, function(x) {
+      n = get_attribute(x, id2);
+      if (!aa2[n]) {
+        a2.push(n);
+        aa2[n] = x[':@'] || {};
+      }
+      aaa[k][n] = x[tag2];
+    });
+  });
+  for (n of a2) {
+    x = {};
+    x[tag2] = [];
+    x[':@'] = aa2[n];
+    for (k of a1) {
+      w = {};
+      w[tag1] = aaa[k][n];
+      w[':@'] = aa1[k];
+      x[tag2].push(w);
+    }
+    dst.push(x);
+  }
+}
+MXML.prototype.part2time = function() {
+  if (!this.isPartwise()) return;
+  var pw = this.xml[0];
+  var tw = { 'score-timewise': [] };
+  copy_mxl_headers(pw['score-partwise'], tw['score-timewise']);
+  copy_attributes(pw, tw);
+  flip_measures(pw['score-partwise'], tw['score-timewise'], 'part', 'id', 'measure', 'number');
+  return [XML_prolog, XML_timewise, builder.build([tw]).trim()].join('\n');
+};
+MXML.prototype.time2part = function() {
+  if (!this.isTimewise()) return;
+  var tw = this.xml[0];
+  var pw = { 'score-partwise': [] };
+  copy_mxl_headers(tw['score-timewise'], pw['score-partwise']);
+  copy_attributes(tw, pw);
+  flip_measures(tw['score-timewise'], pw['score-partwise'], 'measure', 'number', 'part', 'id');
+  return [XML_prolog, XML_partwise, builder.build([pw]).trim()].join('\n');
+};
 
 async function inflate(b) {
   const ds = new DecompressionStream('deflate-raw');
