@@ -12,7 +12,7 @@ const output = process.argv[3];
 
 var data;
 try {
-  data = fs.readFileSync(input);
+  data = fs.readFileSync(input, 'utf8');
 }
 catch (e) {
   console.error('Cannot read file:', input);
@@ -20,9 +20,15 @@ catch (e) {
   process.exit(1);
 }
 
+var xml = new MXML(data);
+if (!xml.isPartwise() && !xml.isTimewise() && !xml.isOpus()) {
+  console.error('Not a valid MusicXML file');
+  process.exit(1);
+}
+
 (async function() {
   try {
-    data = await MXML.unzip(data);
+    data = await MXML.zip(new TextEncoder().encode(data));
   }
   catch (e) {
     console.error('Cannot uncompress file:', input);
@@ -30,7 +36,7 @@ catch (e) {
     process.exit(1);
   }
   try {
-    if (output) fs.writeFileSync(output, data, 'utf8');
+    if (output) fs.writeFileSync(output, data);
     else console.log(data);
   }
   catch (e) {
