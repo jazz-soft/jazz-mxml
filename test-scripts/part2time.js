@@ -22,7 +22,7 @@ catch (e) {
 
 var xml = new MXML(data);
 if (!xml.isPartwise()) {
-  console.error('Not a valid partvise MusicXML file');
+  console.error('Not a valid partwise MusicXML file');
   process.exit(1);
 }
 

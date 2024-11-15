@@ -22,7 +22,7 @@ catch (e) {
 
 var xml = new MXML(data);
 if (!xml.isTimewise()) {
-  console.error('Not a valid timevise MusicXML file');
+  console.error('Not a valid timewise MusicXML file');
   process.exit(1);
 }
 
