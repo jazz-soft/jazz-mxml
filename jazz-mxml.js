@@ -30,7 +30,6 @@ function copy_mxl_headers(src, dst) {
 }
 function copy_attributes(src, dst) { if (src[':@']) dst[':@'] = src[':@']; }
 function get_attribute(x, a) { if (x[':@']) return x[':@']['@_' + a]; }
-function set_attribute(x, a, v) { if (!x[':@']) x[':@'] = {}; x[':@']['@_' + a] = v; }
 function flip_measures(src, dst, tag1, id1, tag2, id2) {
   var a1 = [], a2 = [];
   var aa1 = {}, aa2 = {}, aaa = {};
