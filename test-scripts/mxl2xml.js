@@ -21,12 +21,9 @@ catch (e) {
 }
 
 (async function() {
-  try {
-    data = await MXML.unzip(data);
-  }
-  catch (e) {
+  data = await MXML.unzip(data);
+  if (!data) {
     console.error('Cannot uncompress file:', input);
-    console.error(e.message);
     process.exit(1);
   }
   try {
