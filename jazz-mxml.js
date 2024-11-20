@@ -1,5 +1,9 @@
 const FXP = require('fast-xml-parser');
 const specs = require('./specs.js');
+if (typeof JZZ == 'undefined') {
+  JZZ = require('jzz');
+  require('jzz-midi-smf')(JZZ);
+}
 
 const XML_prolog = '<?xml version="1.0" encoding="UTF-8"?>';
 const XML_partwise = '<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">';
@@ -24,6 +28,11 @@ MXML.prototype.format = function () { return builder.build(this.xml); };
 MXML.validate = function(s) { return FXP.XMLValidator.validate(s); };
 MXML.prototype.validate = function () { return MXML.validate(this.txt); };
 function for_tag(a, t, f) { for (var x of a) if (x[t]) f(x, x[t]); }
+function get_tag(a, t) {
+  var r = [];
+  for (var x of a) if (x[t]) r.push(x[t]);
+  return r;
+}
 function copy_mxl_headers(src, dst) {
   function push(x) { dst.push(x); }
   for (var tag of ['work', 'movement-number', 'movement-title', 'identification', 'defaults', 'credit', 'part-list']) for_tag(src, tag, push);
@@ -81,6 +90,18 @@ MXML.prototype.time2part = function() {
   flip_measures(tw['score-timewise'], pw['score-partwise'], 'measure', 'number', 'part', 'id');
   return [XML_prolog, XML_partwise, builder.build([pw]).trim()].join('\n');
 };
+
+MXML.prototype.midi = function() {
+  var M = new DOM({'/': this.xml});
+
+  return toSMF();
+}
+function toSMF(x) {
+  var smf = new JZZ.MIDI.SMF();
+  var trk = new JZZ.MIDI.SMF.MTrk();
+  smf.push(trk);
+  return smf;
+}
 
 async function inflate(b) {
   const ds = new DecompressionStream('deflate-raw');
@@ -324,6 +345,36 @@ function crc(B) {
   L += 15;
   while (i < L) C = (C >>> 8) ^ T0[(C ^ B[i++]) & 0xFF];
   return ~C;
+}
+
+function DOM(obj, sup) {
+  if (typeof obj['#text'] != 'undefined') {
+    this.tag = '#';
+    this.val = obj['#text'];
+  }
+  else {
+    for (var t of Object.keys(obj)) {
+      if (t != ':@' && t != '#text') {
+        this.tag = t;
+      }
+    }
+    if (obj[':@']) {
+      this.atr = {};
+      for (var a of Object.keys(obj[':@'])) this.atr[a.substring(2)] = obj[':@'][a];
+    }
+    var sub = [];
+    if (obj[this.tag]) for (var x of obj[this.tag]) sub.push(new DOM(x, this));
+    if (sub.length) this.sub = sub;
+  }
+  if (sup) this.sup = sup;
+  this.obj = obj;
+}
+DOM.prototype.get = function(...args) {
+  if (!args.length) return [this];
+  var a = [];
+  var t = args.shift();
+  for (var x of this.sub) if (x.tag == t) a = a.concat(x.get(...args));
+  return a;
 }
 
 module.exports = MXML;
