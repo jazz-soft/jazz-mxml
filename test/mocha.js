@@ -93,6 +93,17 @@ describe('files', function() {
   });
 });
 
+describe('MIDI', function() {
+  it('partwise', function() {
+    var X = new MXML(partwise);
+    var smf = X.midi();
+  });
+  it('timewise', function() {
+    var X = new MXML(timewise);
+    var smf = X.midi();
+  });
+});
+
 describe('utils', function() {
   it('validate', function() {
     var X = new MXML(partwise);

@@ -28,11 +28,6 @@ MXML.prototype.format = function () { return builder.build(this.xml); };
 MXML.validate = function(s) { return FXP.XMLValidator.validate(s); };
 MXML.prototype.validate = function () { return MXML.validate(this.txt); };
 function for_tag(a, t, f) { for (var x of a) if (x[t]) f(x, x[t]); }
-function get_tag(a, t) {
-  var r = [];
-  for (var x of a) if (x[t]) r.push(x[t]);
-  return r;
-}
 function copy_mxl_headers(src, dst) {
   function push(x) { dst.push(x); }
   for (var tag of ['work', 'movement-number', 'movement-title', 'identification', 'defaults', 'credit', 'part-list']) for_tag(src, tag, push);
@@ -90,18 +85,6 @@ MXML.prototype.time2part = function() {
   flip_measures(tw['score-timewise'], pw['score-partwise'], 'measure', 'number', 'part', 'id');
   return [XML_prolog, XML_partwise, builder.build([pw]).trim()].join('\n');
 };
-
-MXML.prototype.midi = function() {
-  var M = new DOM({'/': this.xml});
-
-  return toSMF();
-}
-function toSMF(x) {
-  var smf = new JZZ.MIDI.SMF();
-  var trk = new JZZ.MIDI.SMF.MTrk();
-  smf.push(trk);
-  return smf;
-}
 
 async function inflate(b) {
   const ds = new DecompressionStream('deflate-raw');
@@ -347,6 +330,59 @@ function crc(B) {
   return ~C;
 }
 
+MXML.prototype.midi = function() {
+  var DOC = new DOM({'/': this.xml});
+  var SC, parts;
+  var p, P, PP = [], PPP = {};
+  var m, M, MM = [], MMM = {};
+  var score = {};
+  if (this.isPartwise()) {
+    SC = DOC.get('score-partwise')[0];
+    for (P of SC.get('part')) {
+      p = P.attr('id');
+      if (!PPP[p]) {
+        PP.push(p);
+        PPP[p] = P;
+      }
+      for (M of P.get('measure')) {
+        m = M.attr('number');
+        if (!MMM[m]) {
+          MM.push(m);
+          MMM[m] = M;
+          score[m] = {};
+        }
+        score[m][p] = M;
+      }
+    }
+  }
+  else if (this.isTimewise()) {
+    SC = DOC.get('score-timewise')[0];
+    for (M of SC.get('measure')) {
+      m = M.attr('number');
+      if (!MMM[m]) {
+        MM.push(m);
+        MMM[m] = M;
+        score[m] = {};
+      }
+      for (P of M.get('part')) {
+        p = P.attr('id');
+        if (!PPP[p]) {
+          PP.push(p);
+          PPP[p] = P;
+        }
+        score[m][p] = P;
+      }
+    }
+  }
+  return toSMF();
+}
+function toSMF(x) {
+  var smf = new JZZ.MIDI.SMF();
+  var trk = new JZZ.MIDI.SMF.MTrk();
+  smf.push(trk);
+  return smf;
+}
+
 function DOM(obj, sup) {
   if (typeof obj['#text'] != 'undefined') {
     this.tag = '#';
@@ -375,6 +411,17 @@ DOM.prototype.get = function(...args) {
   var t = args.shift();
   for (var x of this.sub) if (x.tag == t) a = a.concat(x.get(...args));
   return a;
+}
+DOM.prototype.attr = function(...args) {
+  if (!args.length) return;
+  var t = args.pop();
+  var a = this.get(...args);
+  if (a.length == 1 && a[0].atr) return a[0].atr[t];
+}
+DOM.prototype.value = function(...args) {
+  args.push('#');
+  var a = this.get(...args);
+  if (a.length == 1) return a[0].val;
 }
 
 module.exports = MXML;
