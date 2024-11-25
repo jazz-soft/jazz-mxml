@@ -332,7 +332,7 @@ function crc(B) {
 
 MXML.prototype.midi = function() {
   var DOC = new DOM({'/': this.xml});
-  var SC, parts;
+  var x, k, k0, k1, SC, parts;
   var p, P, PP = [], PPP = {};
   var m, M, MM = [], MMM = {};
   var score = {};
@@ -374,6 +374,27 @@ MXML.prototype.midi = function() {
       }
     }
   }
+  for (m of MM) {
+    for (p of PP) {
+      k0 = 0; k1 = 0;
+      if (!score[m][p]) continue;
+console.log(m, p);
+//console.log(score[m][p]);
+      for (x of score[m][p].sub) {
+        if (x.tag == 'note') {
+console.log(x.tag, x.value('pitch', 'step'), note_pitch(x), !!x.get('chord').length, x.value('duration'), x.attr('instrument', 'id') );
+        }
+        else if (x.tag == 'backup') {
+console.log(x.tag, x.value('duration'));
+        }
+        else if (x.tag == 'forward') {
+console.log(x.tag, x.value('duration'));
+        }
+        else console.log('skip:', x.tag);
+//console.log(x.obj);
+      }
+    }
+  }
   return toSMF();
 }
 function toSMF(x) {
@@ -381,6 +402,14 @@ function toSMF(x) {
   var trk = new JZZ.MIDI.SMF.MTrk();
   smf.push(trk);
   return smf;
+}
+function note_pitch(x) {
+  var p = x.get('pitch')[0];
+  if (p) {
+    var m = {C: 0, D: 2, E: 4, F:5, G: 7, A: 9, B: 11}[p.value('step')];
+    var k = p.value('octave');  
+    if (m == parseInt(m) || k == parseInt(k)) return m + (k + 1) * 12 + (p.value('alter') || 0);
+  }
 }
 
 function DOM(obj, sup) {
@@ -409,7 +438,7 @@ DOM.prototype.get = function(...args) {
   if (!args.length) return [this];
   var a = [];
   var t = args.shift();
-  for (var x of this.sub) if (x.tag == t) a = a.concat(x.get(...args));
+  if (this.sub) for (var x of this.sub) if (x.tag == t) a = a.concat(x.get(...args));
   return a;
 }
 DOM.prototype.attr = function(...args) {
