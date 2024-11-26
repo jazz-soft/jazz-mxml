@@ -332,10 +332,11 @@ function crc(B) {
 
 MXML.prototype.midi = function() {
   var DOC = new DOM({'/': this.xml});
-  var x, k, k0, k1, SC, parts;
+  var x, d, k, k0, k1, SC;
   var p, P, PP = [], PPP = {};
   var m, M, MM = [], MMM = {};
   var score = {};
+  var parts = {};
   if (this.isPartwise()) {
     SC = DOC.get('score-partwise')[0];
     for (P of SC.get('part')) {
@@ -374,24 +375,39 @@ MXML.prototype.midi = function() {
       }
     }
   }
+  for (P of SC.get('part-list', 'score-part')) {
+    p = P.attr('id');
+    parts[p] = {};
+    for (M of P.get('midi-instrument')) {
+      m = M.attr('id');
+console.log(p, m, M.value('midi-channel'), M.value('midi-program'), M.value('midi-unpitched'), M.value('volume'), M.value('pan'))
+    }
+  }
   for (m of MM) {
     for (p of PP) {
       k0 = 0; k1 = 0;
       if (!score[m][p]) continue;
-console.log(m, p);
-//console.log(score[m][p]);
+//console.log(m, p);
       for (x of score[m][p].sub) {
         if (x.tag == 'note') {
-console.log(x.tag, x.value('pitch', 'step'), note_pitch(x), !!x.get('chord').length, x.value('duration'), x.attr('instrument', 'id') );
+          d = x.value('duration') || 0;
+          if (!x.get('chord').length) {
+            k0 = k1;
+            k1 += d;
+          }
+          if (!x.get('rest').length) {
+//console.log(k0, k1, x.value('pitch', 'step'), note_pitch(x), x.attr('instrument', 'id') );
+          }
         }
         else if (x.tag == 'backup') {
-console.log(x.tag, x.value('duration'));
+          d = x.value('duration') || 0;
+          k1 -= d;
         }
         else if (x.tag == 'forward') {
-console.log(x.tag, x.value('duration'));
+          d = x.value('duration') || 0;
+          k1 += d;
         }
-        else console.log('skip:', x.tag);
-//console.log(x.obj);
+        //else console.log('skip:', x.tag);
       }
     }
   }
