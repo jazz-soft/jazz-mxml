@@ -385,10 +385,11 @@ console.log(p, m, M.value('midi-channel'), M.value('midi-program'), M.value('mid
   }
   for (m of MM) {
     for (p of PP) {
+      M = score[m][p];
+      if (!M) continue;
       k0 = 0; k1 = 0;
-      if (!score[m][p]) continue;
-//console.log(m, p);
-      for (x of score[m][p].sub) {
+console.log(m, p, M.value('attributes', 'divisions'), M.value('attributes', 'time', 'beats'), '/', M.value('attributes', 'time', 'beat-type'));
+      for (x of M.sub) {
         if (x.tag == 'note') {
           d = x.value('duration') || 0;
           if (!x.get('chord').length) {
