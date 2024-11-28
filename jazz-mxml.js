@@ -336,7 +336,7 @@ MXML.prototype.midi = function() {
   var p, P, PP = [], PPP = {};
   var m, M, MM = [], MMM = {};
   var score = {};
-  var parts = {};
+  var V = new Voice();
   if (this.isPartwise()) {
     SC = DOC.get('score-partwise')[0];
     for (P of SC.get('part')) {
@@ -377,18 +377,14 @@ MXML.prototype.midi = function() {
   }
   for (P of SC.get('part-list', 'score-part')) {
     p = P.attr('id');
-    parts[p] = {};
-    for (M of P.get('midi-instrument')) {
-      m = M.attr('id');
-console.log(p, m, M.value('midi-channel'), M.value('midi-program'), M.value('midi-unpitched'), M.value('volume'), M.value('pan'))
-    }
+    for (M of P.get('midi-instrument')) V.set(p, M);
   }
   for (m of MM) {
     for (p of PP) {
       M = score[m][p];
       if (!M) continue;
       k0 = 0; k1 = 0;
-console.log(m, p, M.value('attributes', 'divisions'), M.value('attributes', 'time', 'beats'), '/', M.value('attributes', 'time', 'beat-type'));
+//console.log(m, p, M.value('attributes', 'divisions'), M.value('attributes', 'time', 'beats'), '/', M.value('attributes', 'time', 'beat-type'));
       for (x of M.sub) {
         if (x.tag == 'note') {
           d = x.value('duration') || 0;
@@ -396,9 +392,7 @@ console.log(m, p, M.value('attributes', 'divisions'), M.value('attributes', 'tim
             k0 = k1;
             k1 += d;
           }
-          if (!x.get('rest').length) {
-//console.log(k0, k1, x.value('pitch', 'step'), note_pitch(x), x.attr('instrument', 'id') );
-          }
+//console.log(k0, k1, V.get(p, x));
         }
         else if (x.tag == 'backup') {
           d = x.value('duration') || 0;
@@ -420,13 +414,53 @@ function toSMF(x) {
   smf.push(trk);
   return smf;
 }
-function note_pitch(x) {
+
+function _bad_value(t, v) { throw new Error(['Bad', t, 'value:', v].join(' '));}
+function _cp_int(obj, pr, x, tag, min, max, d) {
+  var v = x.value(tag);
+  if (v == undefined) return;
+  if (v != parseInt(v) || v < min || v > max) _bad_value(tag, v);
+  obj[pr] = v + (d || 0);
+}
+function _cp_float(obj, pr, x, tag, min, max) {
+  var v = x.value(tag);
+  if (v == undefined) return;
+  if (v != parseFloat(v) || v < min || v > max) _bad_value(tag, v);
+  obj[pr] = v;
+}
+
+function Voice() { this.PP = {}; }
+Voice.prototype.set = function(pp, x) {
+  if (!this.PP[pp]) this.PP[pp] = {};
+  var id = x.attr('id');
+  var v = {};
+  _cp_int(v, 'ch', x, 'midi-channel', 1, 16, -1);
+  _cp_int(v, 'prog', x, 'midi-program', 1, 128, -1);
+  _cp_int(v, 'bank', x, 'midi-bank', 1, 128, -1);
+  _cp_int(v, 'note', x, 'midi-unpitched', 1, 128, -1);
+  _cp_float(v, 'vol', x, 'volume', 0, 100);
+  _cp_float(v, 'pan', x, 'pan', -180, 180);
+  this.PP[pp][id] = v;
+  if (!this.PP[pp][undefined]) this.PP[pp][undefined] = v;
+//console.log(pp, id, v);
+};
+Voice.prototype.get = function(pp, x) {
+  if (x.get('rest').length) return;
   var p = x.get('pitch')[0];
+  var r = { ch: 0 };
   if (p) {
     var m = {C: 0, D: 2, E: 4, F:5, G: 7, A: 9, B: 11}[p.value('step')];
     var k = p.value('octave');  
-    if (m == parseInt(m) || k == parseInt(k)) return m + (k + 1) * 12 + (p.value('alter') || 0);
+    if (m == parseInt(m) || k == parseInt(k)) r.note = m + (k + 1) * 12 + (p.value('alter') || 0);
   }
+  var id = x.attr('instrument', 'id');
+  var v;
+  if (this.PP[pp]) v = this.PP[pp][id];
+  if (v) {
+    if (v.note != undefined) r.note = v.note;
+    if (v.ch != undefined) r.ch = v.ch;
+  }
+  if (r.note != undefined) return r;
 }
 
 function DOM(obj, sup) {
