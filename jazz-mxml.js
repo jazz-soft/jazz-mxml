@@ -379,6 +379,7 @@ MXML.prototype.midi = function() {
     p = P.attr('id');
     for (M of P.get('midi-instrument')) V.set(p, M);
   }
+  V.dump();
   for (m of MM) {
     for (p of PP) {
       M = score[m][p];
@@ -461,6 +462,26 @@ Voice.prototype.get = function(pp, x) {
     if (v.ch != undefined) r.ch = v.ch;
   }
   if (r.note != undefined) return r;
+}
+Voice.prototype.dump = function() {
+  var v, g, c;
+  var X = {};
+  var A = [];
+  for (var pp of Object.keys(this.PP)) {
+    for (var id of Object.keys(this.PP[pp])) {
+      v = this.PP[pp][id];
+      g = v.gr || 0;
+      c = v.ch || 0;
+      if (!X[g]) X[g] = {};
+      if (!X[g][c]) X[g][c] = {};
+      X[g][c] = v;
+    //console.log('DUMP:', this.PP[pp][id]);
+    }
+  }
+  for (g of Object.keys(X).sort()) {
+    for (c of Object.keys(X[g]).sort()) A.push(X[g][c]);
+  }
+  return A;
 }
 
 function DOM(obj, sup) {
