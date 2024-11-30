@@ -85,6 +85,8 @@ MXML.prototype.time2part = function() {
   flip_measures(tw['score-timewise'], pw['score-partwise'], 'measure', 'number', 'part', 'id');
   return [XML_prolog, XML_partwise, builder.build([pw]).trim()].join('\n');
 };
+MXML.prototype.midi = function() { return new Flow(this).midi(); };
+MXML.prototype.midi2 = function() { return new Flow(this).midi2(); };
 
 async function inflate(b) {
   const ds = new DecompressionStream('deflate-raw');
@@ -330,14 +332,14 @@ function crc(B) {
   return ~C;
 }
 
-MXML.prototype.midi = function() {
-  var DOC = new DOM({'/': this.xml});
+function Flow(X) {
+  var DOC = new DOM({'/': X.xml});
   var x, d, k, k0, k1, SC;
   var p, P, PP = [], PPP = {};
   var m, M, MM = [], MMM = {};
   var score = {};
   var V = new Voice();
-  if (this.isPartwise()) {
+  if (X.isPartwise()) {
     SC = DOC.get('score-partwise')[0];
     for (P of SC.get('part')) {
       p = P.attr('id');
@@ -356,7 +358,7 @@ MXML.prototype.midi = function() {
       }
     }
   }
-  else if (this.isTimewise()) {
+  else if (X.isTimewise()) {
     SC = DOC.get('score-timewise')[0];
     for (M of SC.get('measure')) {
       m = M.attr('number');
@@ -379,7 +381,7 @@ MXML.prototype.midi = function() {
     p = P.attr('id');
     for (M of P.get('midi-instrument')) V.set(p, M);
   }
-  V.dump();
+  this.H = V.dump();
   for (m of MM) {
     for (p of PP) {
       M = score[m][p];
@@ -407,13 +409,34 @@ MXML.prototype.midi = function() {
       }
     }
   }
-  return toSMF();
 }
-function toSMF(x) {
+function _push_midi(trk, x, t) {
+  trk = trk.tick(t || 0);
+  if (x.type == 'prog') {
+    if (x.bank != undefined) trk.bank(x.ch, x.bank);
+    trk.program(x.ch, x.prog);
+  }
+}
+function _push_midi2(clip, x, t) {
+  clip = clip.tick(t || 0);
+  var g = x.gr || 0;
+  if (x.type == 'prog') {
+    clip.tick(t).umpProgram(g, x.ch, x.prog, x.bank);
+  }
+}
+Flow.prototype.midi = function() {
   var smf = new JZZ.MIDI.SMF();
   var trk = new JZZ.MIDI.SMF.MTrk();
+  var x, t = 0;
   smf.push(trk);
+  for (x of this.H) _push_midi(trk, x);
   return smf;
+}
+Flow.prototype.midi2 = function() {
+  var clip = new JZZ.MIDI.Clip();
+  var x, t = 0;
+  for (x of this.H) _push_midi2(clip, x);
+  return clip;
 }
 
 function _bad_value(t, v) { throw new Error(['Bad', t, 'value:', v].join(' '));}
@@ -437,13 +460,12 @@ Voice.prototype.set = function(pp, x) {
   var v = {};
   _cp_int(v, 'ch', x, 'midi-channel', 1, 16, -1);
   _cp_int(v, 'prog', x, 'midi-program', 1, 128, -1);
-  _cp_int(v, 'bank', x, 'midi-bank', 1, 128, -1);
+  _cp_int(v, 'bank', x, 'midi-bank', 1, 16384, -1);
   _cp_int(v, 'note', x, 'midi-unpitched', 1, 128, -1);
   _cp_float(v, 'vol', x, 'volume', 0, 100);
   _cp_float(v, 'pan', x, 'pan', -180, 180);
   this.PP[pp][id] = v;
   if (!this.PP[pp][undefined]) this.PP[pp][undefined] = v;
-//console.log(pp, id, v);
 };
 Voice.prototype.get = function(pp, x) {
   if (x.get('rest').length) return;
@@ -451,7 +473,7 @@ Voice.prototype.get = function(pp, x) {
   var r = { ch: 0 };
   if (p) {
     var m = {C: 0, D: 2, E: 4, F:5, G: 7, A: 9, B: 11}[p.value('step')];
-    var k = p.value('octave');  
+    var k = p.value('octave');
     if (m == parseInt(m) || k == parseInt(k)) r.note = m + (k + 1) * 12 + (p.value('alter') || 0);
   }
   var id = x.attr('instrument', 'id');
@@ -474,13 +496,11 @@ Voice.prototype.dump = function() {
       c = v.ch || 0;
       if (!X[g]) X[g] = {};
       if (!X[g][c]) X[g][c] = {};
-      X[g][c] = v;
-    //console.log('DUMP:', this.PP[pp][id]);
+      else if (X[g][c].bank != v.bank || X[g][c].prog != v.prog) console.log('Program mismatch: group ' + g + ', channel ' + c, X[g][c].bank, v.bank, X[g][c].prog, v.prog, X[g][c]);
+      X[g][c] = { type: 'prog', gr: g, ch: c, bank: v.bank, prog: v.prog };
     }
   }
-  for (g of Object.keys(X).sort()) {
-    for (c of Object.keys(X[g]).sort()) A.push(X[g][c]);
-  }
+  for (g of Object.keys(X).sort()) for (c of Object.keys(X[g]).sort()) A.push(X[g][c]);
   return A;
 }
 

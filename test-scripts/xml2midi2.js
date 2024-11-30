@@ -26,7 +26,7 @@ catch (e) {
     console.error('Not a valid MusicXML file:', input);
     process.exit(1);
   }
-  data = xml.midi();
+  data = xml.midi2();
   if (!data) {
     console.error('Cannot generate MIDI');
     process.exit(1);
