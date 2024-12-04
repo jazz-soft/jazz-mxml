@@ -334,11 +334,12 @@ function crc(B) {
 
 function Flow(X) {
   var DOC = new DOM({'/': X.xml});
-  var x, d, k, k0, k1, SC;
+  var x, d, k, t, k0, k1, SC;
   var p, P, PP = [], PPP = {};
   var m, M, MM = [], MMM = {};
   var score = {};
   var V = new Voice();
+  var Msr;
   if (X.isPartwise()) {
     SC = DOC.get('score-partwise')[0];
     for (P of SC.get('part')) {
@@ -382,11 +383,17 @@ function Flow(X) {
     for (M of P.get('midi-instrument')) V.set(p, M);
   }
   this.H = V.dump();
+  this.M = [];
   for (m of MM) {
+    Msr = new Measure(Msr);
+    this.M.push(Msr);
     for (p of PP) {
       M = score[m][p];
       if (!M) continue;
-      k0 = 0; k1 = 0;
+      k = M.value('attributes', 'divisions');
+      if (k) Msr.div[p] = k;
+      k = 96 / (Msr.div[p] || 1);
+      k0 = 0; k1 = 0; t = 0;
 //console.log(m, p, M.value('attributes', 'divisions'), M.value('attributes', 'time', 'beats'), '/', M.value('attributes', 'time', 'beat-type'));
       for (x of M.sub) {
         if (x.tag == 'note') {
@@ -395,18 +402,27 @@ function Flow(X) {
             k0 = k1;
             k1 += d;
           }
-//console.log(k0, k1, V.get(p, x));
+          x = V.get(p, x);
+          if (x) {
+            t = Math.round(k0 * k);
+            Msr.M.push({ tt: t, type: 'noteon', ch: x.ch, note: x.note, vel: 127 });
+            t = Math.round(k1 * k);
+            Msr.M.push({ tt: t, type: 'noteoff', ch: x.ch, note: x.note });
+          }
         }
         else if (x.tag == 'backup') {
           d = x.value('duration') || 0;
           k1 -= d;
+          t = Math.round(k1 * k);
         }
         else if (x.tag == 'forward') {
           d = x.value('duration') || 0;
           k1 += d;
+          t = Math.round(k1 * k);
         }
         //else console.log('skip:', x.tag);
       }
+      if (Msr.len < t) Msr.len = t;
     }
   }
 }
@@ -416,26 +432,38 @@ function _push_midi(trk, x, t) {
     if (x.bank != undefined) trk.bank(x.ch, x.bank);
     trk.program(x.ch, x.prog);
   }
+  else if (x.type == 'noteon') trk.noteOn(x.ch, x.note);
+  else if (x.type == 'noteoff') trk.noteOff(x.ch, x.note);
 }
 function _push_midi2(clip, x, t) {
   clip = clip.tick(t || 0);
   var g = x.gr || 0;
   if (x.type == 'prog') {
-    clip.tick(t).umpProgram(g, x.ch, x.prog, x.bank);
+    clip.umpProgram(g, x.ch, x.prog, x.bank);
   }
+  else if (x.type == 'noteon') clip.umpNoteOn(g, x.ch, x.note);
+  else if (x.type == 'noteoff') clip.umpNoteOff(g, x.ch, x.note);
 }
 Flow.prototype.midi = function() {
   var smf = new JZZ.MIDI.SMF();
   var trk = new JZZ.MIDI.SMF.MTrk();
-  var x, t = 0;
+  var x, m, t = 0;
   smf.push(trk);
   for (x of this.H) _push_midi(trk, x);
+  for (m = this.M[0]; m; m = m.next()) {
+    for (x of m.M) _push_midi(trk, x, x.tt + t);
+    t += m.len;
+  }
   return smf;
 }
 Flow.prototype.midi2 = function() {
   var clip = new JZZ.MIDI.Clip();
-  var x, t = 0;
+  var x, m, t = 0;
   for (x of this.H) _push_midi2(clip, x);
+  for (m = this.M[0]; m; m = m.next()) {
+    for (x of m.M) _push_midi2(clip, x, x.tt + t);
+    t += m.len;
+  }
   return clip;
 }
 
@@ -452,6 +480,17 @@ function _cp_float(obj, pr, x, tag, min, max) {
   if (v != parseFloat(v) || v < min || v > max) _bad_value(tag, v);
   obj[pr] = v;
 }
+
+function Measure(m) {
+  this.len = 0;
+  this.div = {};
+  this.M = [];
+  if (m) {
+    m.nxt = this;
+    for (var p of Object.keys(m.div)) this.div[p] = m.div[p];
+  }
+}
+Measure.prototype.next = function() { return this.nxt; };
 
 function Voice() { this.PP = {}; }
 Voice.prototype.set = function(pp, x) {
