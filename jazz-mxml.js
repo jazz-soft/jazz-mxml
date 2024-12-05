@@ -404,27 +404,33 @@ function Flow(X) {
           }
           x = V.get(p, x);
           if (x) {
-            t = Math.round(k0 * k);
-            Msr.M.push({ tt: t, type: 'noteon', ch: x.ch, note: x.note, vel: 127 });
-            t = Math.round(k1 * k);
-            Msr.M.push({ tt: t, type: 'noteoff', ch: x.ch, note: x.note });
+            Msr.M.push({ tt: Math.round(k0 * k), type: 'noteon', ch: x.ch, note: x.note, vel: 127 });
+            Msr.M.push({ tt: Math.round(k1 * k), type: 'noteoff', ch: x.ch, note: x.note });
           }
         }
         else if (x.tag == 'backup') {
           d = x.value('duration') || 0;
           k1 -= d;
-          t = Math.round(k1 * k);
         }
         else if (x.tag == 'forward') {
           d = x.value('duration') || 0;
           k1 += d;
-          t = Math.round(k1 * k);
         }
+        else if (x.tag == 'sound') _sound(Msr.M, x, Math.round(k1 * k));
+        else if (x.tag == 'direction') for (d of x.get('sound')) _sound(Msr.M, d, Math.round(k1 * k));
         //else console.log('skip:', x.tag);
+        t = Math.round(k1 * k);
+        if (Msr.len < t) Msr.len = t;
       }
-      if (Msr.len < t) Msr.len = t;
     }
   }
+}
+function _sound(M, x, t) {
+  //console.log('SOUND', x.atr);
+  var v;
+  v = x.attr('tempo');
+  if (v) console.log('TEMPO:', v);
+  if (v) M.push({ tt: t, type: 'tempo', tempo: v });
 }
 function _push_midi(trk, x, t) {
   trk = trk.tick(t || 0);
@@ -434,6 +440,7 @@ function _push_midi(trk, x, t) {
   }
   else if (x.type == 'noteon') trk.noteOn(x.ch, x.note);
   else if (x.type == 'noteoff') trk.noteOff(x.ch, x.note);
+  else if (x.type == 'tempo') trk.smfBPM(x.tempo);
 }
 function _push_midi2(clip, x, t) {
   clip = clip.tick(t || 0);
@@ -443,6 +450,7 @@ function _push_midi2(clip, x, t) {
   }
   else if (x.type == 'noteon') clip.umpNoteOn(g, x.ch, x.note);
   else if (x.type == 'noteoff') clip.umpNoteOff(g, x.ch, x.note);
+  else if (x.type == 'tempo') clip.umpBPM(g, x.tempo);
 }
 Flow.prototype.midi = function() {
   var smf = new JZZ.MIDI.SMF();
