@@ -334,7 +334,7 @@ function crc(B) {
 
 function Flow(X) {
   var DOC = new DOM({'/': X.xml});
-  var x, d, k, t, k0, k1, SC;
+  var x, v, d, k, t, k0, k1, SC;
   var p, P, PP = [], PPP = {};
   var m, M, MM = [], MMM = {};
   var score = {};
@@ -388,6 +388,7 @@ function Flow(X) {
     Msr = new Measure(Msr);
     this.M.push(Msr);
     for (p of PP) {
+      if (Msr.dyn[p] == undefined) Msr.dyn[p] = 90;
       M = score[m][p];
       if (!M) continue;
       k = M.value('attributes', 'divisions');
@@ -396,41 +397,53 @@ function Flow(X) {
       k0 = 0; k1 = 0; t = 0;
 //console.log(m, p, M.value('attributes', 'divisions'), M.value('attributes', 'time', 'beats'), '/', M.value('attributes', 'time', 'beat-type'));
       for (x of M.sub) {
+        t = Math.round(k1 * k);
         if (x.tag == 'note') {
           d = x.value('duration') || 0;
           if (!x.get('chord').length) {
             k0 = k1;
             k1 += d;
+            t = Math.round(k1 * k);
           }
           x = V.get(p, x);
           if (x) {
-            Msr.M.push({ tt: Math.round(k0 * k), type: 'noteon', ch: x.ch, note: x.note, vel: 127 });
+            Msr.M.push({ tt: Math.round(k0 * k), type: 'noteon', ch: x.ch, note: x.note, vel: Msr.dyn[p] });
             Msr.M.push({ tt: Math.round(k1 * k), type: 'noteoff', ch: x.ch, note: x.note });
           }
         }
         else if (x.tag == 'backup') {
           d = x.value('duration') || 0;
           k1 -= d;
+          t = Math.round(k1 * k);
         }
         else if (x.tag == 'forward') {
           d = x.value('duration') || 0;
           k1 += d;
+          t = Math.round(k1 * k);
         }
-        else if (x.tag == 'sound') _sound(Msr.M, x, Math.round(k1 * k));
-        else if (x.tag == 'direction') for (d of x.get('sound')) _sound(Msr.M, d, Math.round(k1 * k));
+        else if (x.tag == 'sound') {
+          v = x.attr('tempo');
+          if (v) Msr.M.push({ tt: t, type: 'tempo', tempo: v });
+          v = x.attr('dynamics');
+          if (v) Msr.dyn[p] = _dyn(v);
+        }
+        else if (x.tag == 'direction') for (d of x.get('sound')) {
+          v = d.attr('tempo');
+          if (v) Msr.M.push({ tt: t, type: 'tempo', tempo: v });
+          v = d.attr('dynamics');
+          if (v) Msr.dyn[p] = _dyn(v);
+        }
         //else console.log('skip:', x.tag);
-        t = Math.round(k1 * k);
         if (Msr.len < t) Msr.len = t;
       }
     }
   }
 }
-function _sound(M, x, t) {
-  //console.log('SOUND', x.atr);
-  var v;
-  v = x.attr('tempo');
-  if (v) console.log('TEMPO:', v);
-  if (v) M.push({ tt: t, type: 'tempo', tempo: v });
+function _dyn(v) {
+  v = Math.round(90 * v / 100);
+  if (v < 0) return 0;
+  if (v > 127) return 127;
+  return v;
 }
 function _push_midi(trk, x, t) {
   trk = trk.tick(t || 0);
@@ -438,7 +451,7 @@ function _push_midi(trk, x, t) {
     if (x.bank != undefined) trk.bank(x.ch, x.bank);
     trk.program(x.ch, x.prog);
   }
-  else if (x.type == 'noteon') trk.noteOn(x.ch, x.note);
+  else if (x.type == 'noteon') trk.noteOn(x.ch, x.note, x.vel);
   else if (x.type == 'noteoff') trk.noteOff(x.ch, x.note);
   else if (x.type == 'tempo') trk.smfBPM(x.tempo);
 }
@@ -448,7 +461,7 @@ function _push_midi2(clip, x, t) {
   if (x.type == 'prog') {
     clip.umpProgram(g, x.ch, x.prog, x.bank);
   }
-  else if (x.type == 'noteon') clip.umpNoteOn(g, x.ch, x.note);
+  else if (x.type == 'noteon') clip.umpNoteOn(g, x.ch, x.note, x.vel << 9);
   else if (x.type == 'noteoff') clip.umpNoteOff(g, x.ch, x.note);
   else if (x.type == 'tempo') clip.umpBPM(g, x.tempo);
 }
@@ -490,12 +503,15 @@ function _cp_float(obj, pr, x, tag, min, max) {
 }
 
 function Measure(m) {
+  var p;
   this.len = 0;
   this.div = {};
+  this.dyn = {};
   this.M = [];
   if (m) {
     m.nxt = this;
-    for (var p of Object.keys(m.div)) this.div[p] = m.div[p];
+    for (p of Object.keys(m.div)) this.div[p] = m.div[p];
+    for (p of Object.keys(m.dyn)) this.dyn[p] = m.dyn[p];
   }
 }
 Measure.prototype.next = function() { return this.nxt; };
