@@ -465,26 +465,33 @@ function _push_midi2(clip, x, t) {
   else if (x.type == 'noteoff') clip.umpNoteOff(g, x.ch, x.note);
   else if (x.type == 'tempo') clip.umpBPM(g, x.tempo);
 }
+function _collect_midi(self) {
+  var m, x, t = 0;
+  var MM = [];
+  for (m = self.M[0]; m; m = m.next()) {
+    for (x of m.M) MM.push({ t: x.tt + t, x: x });
+    t += m.len;
+  }
+  MM.sort(function(a, b) { return a.t - b.t; });
+  if (!MM.length) return MM;
+  t = MM[0].t;
+  if (t < 0) for (x of MM) x.t -= t;
+  return MM;
+}
 Flow.prototype.midi = function() {
   var smf = new JZZ.MIDI.SMF();
   var trk = new JZZ.MIDI.SMF.MTrk();
-  var x, m, t = 0;
+  var x;
   smf.push(trk);
   for (x of this.H) _push_midi(trk, x);
-  for (m = this.M[0]; m; m = m.next()) {
-    for (x of m.M) _push_midi(trk, x, x.tt + t);
-    t += m.len;
-  }
+  for (x of _collect_midi(this)) _push_midi(trk, x.x, x.t);
   return smf;
 }
 Flow.prototype.midi2 = function() {
   var clip = new JZZ.MIDI.Clip();
-  var x, m, t = 0;
+  var x;
   for (x of this.H) _push_midi2(clip, x);
-  for (m = this.M[0]; m; m = m.next()) {
-    for (x of m.M) _push_midi2(clip, x, x.tt + t);
-    t += m.len;
-  }
+  for (x of _collect_midi(this)) _push_midi2(clip, x.x, x.t);
   return clip;
 }
 
