@@ -433,6 +433,21 @@ function Flow(X) {
           v = d.attr('dynamics');
           if (v) Msr.dyn[p] = _dyn(v);
         }
+        else if (x.tag == 'barline') {
+          v = x.attr('location');
+          if (v == 'left') {
+            d = x.attr('repeat', 'direction');
+            if (d == 'forward') Msr.forward = true;
+            d = x.attr('coda');
+            if (d) Msr.segno = d;
+            d = x.attr('segno');
+            if (d) Msr.segno = d;
+          }
+          else if (v == 'right') {
+            d = x.attr('repeat', 'direction');
+            if (d == 'backward') Msr.backward = true;
+          }
+        }
         //else console.log('skip:', x.tag);
         if (Msr.len < t) Msr.len = t;
       }
