@@ -1,17 +1,16 @@
 {
   "name": "jazz-mxml",
-  "version": "0.0.6",
-  "description": "coming soon...",
+  "version": "0.0.7",
+  "description": "MusicXML tools",
   "main": "jazz-mxml.js",
   "scripts": {
     "test": "nyc mocha",
     "lint": "eslint jazz-mxml.js",
     "coverage": "nyc report --reporter=lcov"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/jazz-soft/jazz-mxml.git"
-  },
+  "keywords": [
+    "MusicXML"
+  ],
   "author": "jazz-soft (https://jazz-soft.net/)",
   "dependencies": {
     "fast-xml-parser": "^4.5.0",
@@ -22,6 +21,10 @@
     "eslint": "^9.16.0",
     "mocha": "^11.0.1",
     "nyc": "^17.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jazz-soft/jazz-mxml.git"
   },
   "homepage": "https://github.com/jazz-soft/jazz-mxml#readme",
   "bugs": "https://github.com/jazz-soft/jazz-mxml/issues",
