@@ -5,6 +5,11 @@
 [![build](https://github.com/jazz-soft/jazz-mxml/actions/workflows/build.yml/badge.svg)](https://github.com/jazz-soft/jazz-mxml/actions)
 [![Coverage](https://coveralls.io/repos/github/jazz-soft/jazz-mxml/badge.svg?branch=main)](https://coveralls.io/github/jazz-soft/jazz-mxml?branch=main)
 
-coming soon...
+see https://w3c.github.io/musicxml
 
-see: https://w3c.github.io/musicxml
+## MusicXML tools
+- convert between compressed and uncompressed MusicXML
+- convert between partwise and timewise flavors of MusicXML
+- convert MusicXML to MIDI
+
+Work-in-progress demo: [MusicXML online editor](https://jazz-soft.com/musicxml)
